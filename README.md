@@ -67,8 +67,38 @@ pip install -r requirements.txt
 
 # Set up environment (optional - defaults work for local setup)
 cp .env.example .env
+```
 
-# Run the resolver
+### Database Setup
+
+Run migrations to create the required tables:
+
+```bash
+psql -h localhost -U postgres -d geo_resolution -f migrations/001_create_cities_table.sql
+psql -h localhost -U postgres -d geo_resolution -f migrations/002_create_countries_table.sql
+psql -h localhost -U postgres -d geo_resolution -f migrations/003_create_states_table.sql
+```
+
+### Data Indexing
+
+Before using the application, you must index the geographic data. This step generates vector embeddings for all locations using the `nomic-embed-text` model and stores them in PostgreSQL:
+
+```bash
+# Index countries (~250 records)
+python -m src.loaders.countries
+
+# Index states/provinces (~5K records)
+python -m src.loaders.states
+
+# Index cities (~150K records - this may take a while)
+python -m src.loaders.cities
+```
+
+> **Note**: The indexing process embeds all geographic data using the Ollama embedding model. The cities indexing may take significant time depending on your hardware.
+
+### Run the Application
+
+```bash
 python -m src.main
 ```
 
