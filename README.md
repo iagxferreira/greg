@@ -9,17 +9,83 @@ A RAG-based system for resolving ambiguous, partial, or misspelled city names to
 - **Context-aware**: Respects explicit hints ("Paris, TX" → Paris, Texas, USA)
 - **Structured output**: Returns city, state, country, coordinates, and confidence level
 
+## Prerequisites
+
+### Install Ollama
+
+Download and install Ollama from [ollama.com](https://ollama.com/) or via command line:
+
+```bash
+# Linux
+curl -fsSL https://ollama.com/install.sh | sh
+
+# macOS (via Homebrew)
+brew install ollama
+```
+
+### Pull Required Models
+
+This application requires two Ollama models:
+
+```bash
+# Pull the Mistral LLM (for disambiguation)
+ollama pull mistral:latest
+
+# Pull the Nomic embedding model (for vector search)
+ollama pull nomic-embed-text
+```
+
+### Start Ollama Server
+
+Make sure Ollama is running before starting the application:
+
+```bash
+ollama serve
+```
+
+### PostgreSQL with pgvector
+
+The application uses PostgreSQL with the pgvector extension for vector storage:
+
+```bash
+# Install pgvector extension (Ubuntu/Debian)
+sudo apt install postgresql-16-pgvector
+
+# Or via Docker
+docker run -d --name pgvector \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=geo_resolution \
+  -p 5432:5432 \
+  pgvector/pgvector:pg16
+```
+
 ## Quick Start
 
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up environment
-echo "GOOGLE_API_KEY=your_key_here" > .env
+# Set up environment (optional - defaults work for local setup)
+cp .env.example .env
 
 # Run the resolver
 python -m src.main
+```
+
+## Environment Variables
+
+Create a `.env` file with the following (all have sensible defaults):
+
+```bash
+# Ollama (defaults to localhost)
+OLLAMA_BASE_URL=http://localhost:11434
+
+# PostgreSQL
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=geo_resolution
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
 ```
 
 ## Usage
@@ -54,18 +120,18 @@ Location> NYC
 User Input
     ↓
 ┌─────────────────┐
-│  Google         │  Convert query to vector
-│  Embeddings     │
+│  Ollama         │  Convert query to vector
+│  nomic-embed    │  (nomic-embed-text model)
 └────────┬────────┘
          ↓
 ┌─────────────────┐
-│  FAISS Index    │  Similarity search (150K+ cities)
-│                 │
+│  PostgreSQL     │  pgvector similarity search
+│  pgvector       │  (150K+ cities indexed)
 └────────┬────────┘
          ↓ top-k candidates
 ┌─────────────────┐
-│  Gemini LLM     │  Disambiguate and select best match
-│                 │
+│  Ollama         │  Disambiguate and select best match
+│  Mistral LLM    │  (mistral:latest model)
 └────────┬────────┘
          ↓
 ┌─────────────────┐
@@ -82,7 +148,8 @@ User Input
 ## Requirements
 
 - Python 3.10+
-- Google Cloud API key (for Gemini and Embeddings)
+- Ollama with `mistral:latest` and `nomic-embed-text` models
+- PostgreSQL 14+ with pgvector extension
 
 ## License
 
