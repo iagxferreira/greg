@@ -66,7 +66,7 @@ def search_countries(query: str, k: int = 10) -> list[dict]:
         "similarity",
     ]
 
-    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    results = [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]
 
     cursor.close()
     conn.close()
@@ -117,7 +117,7 @@ def search_states(query: str, k: int = 10) -> list[dict]:
         "similarity",
     ]
 
-    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    results = [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]
 
     cursor.close()
     conn.close()
@@ -168,7 +168,7 @@ def search_cities(query: str, k: int = 10) -> list[dict]:
         "similarity",
     ]
 
-    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    results = [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]
 
     cursor.close()
     conn.close()

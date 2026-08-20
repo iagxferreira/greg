@@ -9,9 +9,7 @@ from src.vector_store import get_connection
 DEFAULT_INSERT_BATCH_SIZE = 1000
 
 
-def batch_embed(
-    texts: list[str], batch_size: int = EMBEDDING_BATCH_SIZE
-) -> list[list[float]]:
+def batch_embed(texts: list[str], batch_size: int = EMBEDDING_BATCH_SIZE) -> list[list[float]]:
     """
     Generate embeddings in batches.
 

@@ -55,7 +55,7 @@ def build_row(row: list, content: str, embedding: list) -> tuple:
 
 def load_countries():
     """Load countries from CSV into PostgreSQL with embeddings."""
-    with open(COUNTRIES_CSV, "r", encoding="utf-8") as f:
+    with open(COUNTRIES_CSV, encoding="utf-8") as f:
         reader = csv.reader(f)
         rows = list(reader)
 
@@ -92,12 +92,13 @@ def load_countries():
 
         insert_rows = [
             build_row(row, content, emb)
-            for row, content, emb in zip(batch_rows, batch_contents, batch_embeddings)
+            for row, content, emb in zip(batch_rows, batch_contents, batch_embeddings, strict=True)
         ]
 
         for insert_row in insert_rows:
             cursor.execute(
-                f"INSERT INTO countries ({cols_str}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::vector)",
+                f"INSERT INTO countries ({cols_str}) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::vector)",
                 insert_row,
             )
 

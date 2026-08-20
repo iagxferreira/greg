@@ -1,7 +1,6 @@
 """Data models for geo-resolution results."""
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -9,13 +8,13 @@ class CountryResult:
     """Result of country resolution."""
 
     matched: bool
-    name: Optional[str] = None
-    official_name: Optional[str] = None
-    iso2: Optional[str] = None
-    iso3: Optional[str] = None
-    capital: Optional[str] = None
-    region: Optional[str] = None
-    subregion: Optional[str] = None
+    name: str | None = None
+    official_name: str | None = None
+    iso2: str | None = None
+    iso3: str | None = None
+    capital: str | None = None
+    region: str | None = None
+    subregion: str | None = None
     confidence: float = 0.0
     reason: str = ""
 
