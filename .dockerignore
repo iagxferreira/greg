@@ -1,0 +1,13 @@
+.git
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+context/
+migrations/
+test/
+faiss_index/
+.env
+.claude/
+*.md

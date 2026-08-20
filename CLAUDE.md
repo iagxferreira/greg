@@ -41,10 +41,13 @@ uv run pytest test/test_resolver.py::test_function_name -v
 Requires a running Ollama server with the `mistral:latest` and `nomic-embed-text` models pulled,
 and a PostgreSQL instance with the `pgvector` extension. `docker compose up -d` starts both (see
 `docker-compose.yml`: `postgres` auto-applies `migrations/*.sql` on first init, `ollama` + the
-one-shot `ollama-init` job pull the required models) — the app itself still runs locally via
-`uv run`, only its two dependencies are containerized. Configuration is read from `.env` — see
-`.env.example` for `OLLAMA_BASE_URL`, `POSTGRES_*`, and `NOMINATIM_*` vars, all of which have
-local-dev defaults in `src/config.py` that match the compose file's defaults.
+one-shot `ollama-init` job pull the required models) plus `api` — the HTTP API built from
+`Dockerfile`, which waits on Postgres healthy + `ollama-init` completed before starting. The CLI
+(`src/main.py`) is never containerized; it always runs locally via `uv run`, against whichever
+Postgres/Ollama are reachable. Configuration is read from `.env` — see `.env.example` for
+`OLLAMA_BASE_URL`, `POSTGRES_*`, and `NOMINATIM_*` vars, all of which have local-dev defaults in
+`src/config.py` that match the compose file's defaults (the `api` service overrides
+`OLLAMA_BASE_URL`/`POSTGRES_HOST` to the in-network service names — see `docker-compose.yml`).
 
 Before first use (skip the migrations if you used `docker compose up -d`), apply the migrations in
 `migrations/` and run the loaders in `src/loaders/` to populate and embed the `countries`,
