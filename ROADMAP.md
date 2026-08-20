@@ -41,7 +41,7 @@ to learn from until Phase 3 has been running and accumulating data.
 
 ## Phase 5 — Developer experience
 
-- [ ] 7. `docs/readme-accuracy` — rewrite README's Usage/Example Resolutions/Architecture sections,
+- [x] 7. `docs/readme-accuracy` — rewrite README's Usage/Example Resolutions/Architecture sections,
       which still describe the aspirational city-resolution + FAISS design, to match the real
       country-only CLI with the Nominatim fallback and feedback logging.
 - [ ] 8. `feat/docker-dev-stack` — add an `ollama` service (+ a one-shot init service that pulls
