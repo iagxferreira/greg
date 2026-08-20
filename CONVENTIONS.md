@@ -30,3 +30,10 @@ Decisions worth remembering, in the order they were made:
 - **CLAUDE.md had gone stale** — it described an earlier Gemini + FAISS design after the code had
   moved to Ollama + pgvector, which would have misled future work on this repo. Lesson: update
   CLAUDE.md in the same PR as any architecture change, not as a separate cleanup later.
+- **`FALLBACK_CONFIDENCE_THRESHOLD = 0.7`** — the RAG prompt (`src/prompt.py`) itself defines
+  0.50–0.69 as a "weak/ambiguous match," so anything below the "strong match" floor of 0.70 also
+  triggers the Nominatim fallback, not just `matched=False`. A successful fallback is assigned a
+  fixed `FALLBACK_CONFIDENCE = 0.6` (`src/fallback.py`) since Nominatim doesn't produce a score on
+  our 0–1 scale and a single unverified geocoder hit shouldn't be reported as more certain than a
+  weak RAG match. On fallback failure the original RAG result is kept rather than surfacing the
+  failure to the caller — degrade gracefully, don't turn a weak match into no match.

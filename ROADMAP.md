@@ -22,7 +22,7 @@ backlog item, not part of the current pass.
 
 ## Phase 2 — Resilience
 
-- [ ] 5. `feat/nominatim-fallback` — when `resolve_country` returns `matched=False` or low confidence,
+- [x] 5. `feat/nominatim-fallback` — when `resolve_country` returns `matched=False` or low confidence,
       fall back to Nominatim (OpenStreetMap) geocoding. Scoped to country resolution since that's the
       only resolver that exists today.
 
