@@ -9,17 +9,17 @@ Geo-resolution RAG system that takes ambiguous/partial/misspelled city input, re
 ## Commands
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (requires uv: https://docs.astral.sh/uv/)
+uv sync
 
 # Run the geo-resolver CLI
-python -m src.main
+uv run python -m src.main
 
 # Run tests
-pytest test/
+uv run pytest test/
 
 # Run a single test
-pytest test/test_resolver.py::test_function_name -v
+uv run pytest test/test_resolver.py::test_function_name -v
 ```
 
 ## Environment Setup
