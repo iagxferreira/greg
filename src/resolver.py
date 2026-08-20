@@ -1,8 +1,10 @@
-"""Geo-resolution using RAG: vector search + LLM disambiguation."""
+"""Geo-resolution using RAG: vector search + LLM disambiguation, with a
+Nominatim fallback for low-confidence or no-match results."""
 
 import json
 
-from src.config import llm
+from src.config import FALLBACK_CONFIDENCE_THRESHOLD, llm
+from src.fallback import nominatim_country_fallback
 from src.models import CountryResult
 from src.prompt import COUNTRY_RESOLUTION_PROMPT, format_country_candidates
 from src.vector_store import search_countries
@@ -10,11 +12,8 @@ from src.vector_store import search_countries
 
 def resolve_country(user_input: str, k: int = 5) -> CountryResult:
     """
-    Resolve a country name using RAG pipeline.
-
-    1. Vector search for top-K candidates
-    2. LLM disambiguates and picks the best match
-    3. Returns structured CountryResult
+    Resolve a country name, using RAG first and falling back to Nominatim
+    geocoding when the RAG pipeline has no match or a low-confidence one.
 
     Args:
         user_input: User's country query (any language, misspellings ok)
@@ -22,6 +21,23 @@ def resolve_country(user_input: str, k: int = 5) -> CountryResult:
 
     Returns:
         CountryResult with matched country or no_match
+    """
+    result = _resolve_country_rag(user_input, k=k)
+
+    if result.matched and result.confidence >= FALLBACK_CONFIDENCE_THRESHOLD:
+        return result
+
+    fallback_result = nominatim_country_fallback(user_input)
+    return fallback_result if fallback_result is not None else result
+
+
+def _resolve_country_rag(user_input: str, k: int) -> CountryResult:
+    """
+    Resolve a country name using the RAG pipeline alone.
+
+    1. Vector search for top-K candidates
+    2. LLM disambiguates and picks the best match
+    3. Returns structured CountryResult
     """
     # Step 1: Vector search
     candidates = search_countries(user_input, k=k)
