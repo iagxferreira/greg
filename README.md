@@ -121,7 +121,11 @@ uv run python -m src.loaders.cities
 ### Run the Application
 
 ```bash
-uv run python -m src.main
+# CLI (single-shot, see Usage below)
+uv run python -m src.main "<country query>"
+
+# HTTP API, at http://127.0.0.1:8000 (interactive docs at /docs)
+uv run uvicorn src.api:app --reload
 ```
 
 ## Environment Variables
@@ -165,6 +169,34 @@ Confidence: 95%
 Reason: Alemania is the Spanish translation for Germany
 ```
 
+### HTTP API
+
+`src/api.py` (FastAPI) exposes the same resolution over HTTP, for anything that isn't a shell —
+scripts, other services, etc. Start it with `uv run uvicorn src.api:app --reload`, then:
+
+```bash
+curl "http://127.0.0.1:8000/v1/countries/resolve?q=alemania"
+```
+
+```json
+{
+  "matched": true,
+  "name": "Germany",
+  "official_name": "Federal Republic of Germany",
+  "iso2": "DE",
+  "iso3": "DEU",
+  "capital": "Berlin",
+  "region": "Europe",
+  "subregion": "Western Europe",
+  "confidence": 0.95,
+  "reason": "Alemania is the Spanish translation for Germany"
+}
+```
+
+`q` is required; `k` (default `5`, range `1`-`20`) optionally overrides how many RAG candidates are
+retrieved: `?q=alemania&k=10`. `GET /health` is a liveness check that doesn't touch Ollama/Postgres.
+Interactive OpenAPI docs are served at `/docs` while the API is running.
+
 ## Example Resolutions
 
 | Input | Output | Reasoning |
@@ -178,7 +210,7 @@ Reason: Alemania is the Spanish translation for Germany
 ## Architecture
 
 ```
-User Input
+User Input (CLI: src/main.py, or HTTP: src/api.py)
     ↓
 ┌─────────────────┐
 │  Ollama         │  Convert query to vector

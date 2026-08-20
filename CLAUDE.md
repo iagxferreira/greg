@@ -22,6 +22,9 @@ uv sync
 # Run the geo-resolver CLI (country resolution only, see Architecture)
 uv run python -m src.main "<country query>"
 
+# Run the HTTP API (see Architecture) at http://127.0.0.1:8000
+uv run uvicorn src.api:app --reload
+
 # Lint / format
 uv run ruff check .
 uv run ruff format .
@@ -91,6 +94,11 @@ best-effort: a DB failure here is swallowed (warning to stderr) and never breaks
   reason).
 - **main.py**: single-shot CLI — `python -m src.main "<query>"` resolves one country and prints
   the result. Not the interactive city-resolution loop the original README implied.
+- **api.py**: FastAPI app — `GET /v1/countries/resolve?q=...&k=...` (uses `resolve_country`
+  directly, `CountryResult` as `response_model` — FastAPI serializes stdlib dataclasses natively,
+  no separate Pydantic model needed) and `GET /health`. Routes are versioned under
+  `/v1/countries/...` so a future `/v1/states/resolve`/`/v1/cities/resolve` slot in the same way
+  once those resolvers exist.
 - **loaders/**: `load_countries`, `load_states`, `load_cities` — read `context/*.csv`, build
   enriched embedding text (`base.build_content` per loader), embed in batches via
   `loaders/base.py:batch_embed`, and bulk-insert via `loaders/base.py:batch_insert`.
