@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Geo-resolution RAG system that takes ambiguous/partial/misspelled city input, retrieves candidates via FAISS vector similarity search, and uses an LLM to disambiguate and return structured location data with coordinates.
+Geo-resolution RAG system that takes ambiguous/partial/misspelled location input, retrieves
+candidates via pgvector similarity search, and uses an LLM to disambiguate and return structured
+geographic data. **Country resolution is fully implemented; city/state resolution is not** — see
+Architecture below.
+
+See `ROADMAP.md` for the phased plan this project is following and `CONVENTIONS.md` for the
+commit/branch/PR workflow and the tradeoffs behind past decisions — both are living documents,
+check them for current status rather than assuming this file alone is up to date.
 
 ## Commands
 
@@ -12,8 +19,12 @@ Geo-resolution RAG system that takes ambiguous/partial/misspelled city input, re
 # Install dependencies (requires uv: https://docs.astral.sh/uv/)
 uv sync
 
-# Run the geo-resolver CLI
-uv run python -m src.main
+# Run the geo-resolver CLI (country resolution only, see Architecture)
+uv run python -m src.main "<country query>"
+
+# Lint / format
+uv run ruff check .
+uv run ruff format .
 
 # Run tests
 uv run pytest test/
@@ -24,23 +35,41 @@ uv run pytest test/test_resolver.py::test_function_name -v
 
 ## Environment Setup
 
-Requires `GOOGLE_API_KEY` in `.env` file for Google Generative AI (Gemini LLM and embeddings).
+Requires a running Ollama server (`ollama serve`) with the `mistral:latest` and `nomic-embed-text`
+models pulled, and a PostgreSQL instance with the `pgvector` extension (see `docker-compose.yml`).
+Configuration is read from `.env` — see `.env.example` for `OLLAMA_BASE_URL` and `POSTGRES_*` vars,
+all of which have local-dev defaults in `src/config.py`.
+
+Before first use, apply the migrations in `migrations/` and run the loaders in `src/loaders/` to
+populate and embed the `countries`, `states`, and `cities` tables from `context/*.csv`.
 
 ## Architecture
 
-### RAG Pipeline Flow
+### RAG Pipeline Flow (country resolution — the only resolver implemented today)
 
 ```
-User Input → Embeddings → FAISS Search → Top-K Candidates → LLM Disambiguation → GeoResult
+User Input → Ollama embeddings (nomic-embed-text) → pgvector similarity search
+    → Top-K candidates → Ollama LLM (mistral:latest) disambiguation → CountryResult
 ```
 
 ### Core Modules (src/)
 
-- **embeddings.py**: Google Generative AI embeddings (`models/embedding-001`)
-- **llm.py**: Gemini LLM (`gemini-1.5-pro`, temperature=0)
-- **vector_store.py**: FAISS index built from cities.csv with enriched documents
-- **prompt.py**: Geo-resolution prompt template for LLM disambiguation
-- **main.py**: `GeoResolver` class orchestrating the pipeline + CLI interface
+- **config.py**: loads `.env`, builds the shared `llm` (`ChatOllama`) and `embeddings`
+  (`OllamaEmbeddings`) instances, validates Ollama connectivity and CSV presence.
+- **vector_store.py**: pgvector cosine-similarity search (`search_countries`, `search_states`,
+  `search_cities`) against PostgreSQL. States and cities search functions exist but nothing calls
+  them yet — see the resolver gap below.
+- **prompt.py**: `COUNTRY_RESOLUTION_PROMPT` template + candidate formatting for country
+  disambiguation.
+- **resolver.py**: `resolve_country()` — the RAG pipeline (search → prompt → LLM → parse JSON →
+  `CountryResult`). No `resolve_state`/`resolve_city` equivalent exists yet.
+- **models.py**: `CountryResult` dataclass (matched, name, iso2/iso3, capital, region, confidence,
+  reason).
+- **main.py**: single-shot CLI — `python -m src.main "<query>"` resolves one country and prints
+  the result. Not the interactive city-resolution loop the original README implied.
+- **loaders/**: `load_countries`, `load_states`, `load_cities` — read `context/*.csv`, build
+  enriched embedding text (`base.build_content` per loader), embed in batches via
+  `loaders/base.py:batch_embed`, and bulk-insert via `loaders/base.py:batch_insert`.
 
 ### Data (context/)
 
@@ -48,11 +77,14 @@ User Input → Embeddings → FAISS Search → Top-K Candidates → LLM Disambig
 |------|---------|------------|
 | cities.csv | 150K+ | id, name, state_code, state_name, country_code, country_name, lat, lon |
 | states.csv | 5K+ | id, name, country_code, state_code, type, lat, lon |
-| countries.csv | 250 | ISO codes, translations (20+ languages), currency, timezone |
+| countries.csv | 250 | ISO codes, translations (20+ languages), capital, region/subregion |
 
-### Vector Store Strategy
+### Storage: PostgreSQL + pgvector (not FAISS)
 
-Cities are indexed as enriched documents (not raw CSV rows) for better semantic matching:
+Each of `cities`, `states`, `countries` (see `migrations/00{1,2,3}_*.sql`) has an `embedding
+vector(768)` column with an HNSW cosine-similarity index, plus a `content` column holding the
+enriched text that was embedded — not raw CSV fields — for better semantic matching, e.g. for a
+city:
 ```
 City: Paris
 State/Region: Ile-de-France (IDF)
@@ -60,4 +92,10 @@ Country: France (FR)
 Full Reference: Paris, Ile-de-France, France
 ```
 
-FAISS index persists to `faiss_index/` after first build.
+There is no local vector index file (no FAISS) — similarity search is a SQL query via `psycopg2`
+(`src/vector_store.py`), so PostgreSQL must be reachable to resolve anything.
+
+### Known gap
+
+`states`/`cities` are loaded and searchable but have no resolver, prompt, or CLI wiring — resolving
+a city or state name currently isn't possible end-to-end. Tracked as backlog in `ROADMAP.md`.
