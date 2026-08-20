@@ -62,8 +62,8 @@ docker run -d --name pgvector \
 ## Quick Start
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (requires uv: https://docs.astral.sh/uv/)
+uv sync
 
 # Set up environment (optional - defaults work for local setup)
 cp .env.example .env
@@ -85,13 +85,13 @@ Before using the application, you must index the geographic data. This step gene
 
 ```bash
 # Index countries (~250 records)
-python -m src.loaders.countries
+uv run python -m src.loaders.countries
 
 # Index states/provinces (~5K records)
-python -m src.loaders.states
+uv run python -m src.loaders.states
 
 # Index cities (~150K records - this may take a while)
-python -m src.loaders.cities
+uv run python -m src.loaders.cities
 ```
 
 > **Note**: The indexing process embeds all geographic data using the Ollama embedding model. The cities indexing may take significant time depending on your hardware.
@@ -99,7 +99,7 @@ python -m src.loaders.cities
 ### Run the Application
 
 ```bash
-python -m src.main
+uv run python -m src.main
 ```
 
 ## Environment Variables
