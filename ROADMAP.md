@@ -10,7 +10,7 @@ step lands as its own PR — see [CONVENTIONS.md](CONVENTIONS.md) for the workfl
 - [x] 2. `chore/ruff-lint` — add ruff lint + format config, fix violations.
 - [x] 3. `docs/architecture-and-conventions` — rewrite CLAUDE.md's Architecture/Commands sections to
       match the real Ollama + pgvector, country-only-so-far system.
-- [ ] 4. `test/pytest-scaffold` — pytest config + unit tests for `models.CountryResult`,
+- [x] 4. `test/pytest-scaffold` — pytest config + unit tests for `models.CountryResult`,
       `prompt.format_country_candidates`, and a resolver test with mocked `llm`/`vector_store`.
 
 ## Phase 1 — Known gap (backlog, not scheduled)
