@@ -19,7 +19,7 @@ def build_content(row: dict) -> str:
 
 def load_states():
     """Load states from CSV into PostgreSQL with embeddings."""
-    with open(STATES_CSV, "r", encoding="utf-8") as f:
+    with open(STATES_CSV, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 
@@ -50,7 +50,7 @@ def load_states():
             content,
             embedding,
         )
-        for row, content, embedding in zip(rows, contents, all_embeddings)
+        for row, content, embedding in zip(rows, contents, all_embeddings, strict=True)
     ]
 
     # Batch insert all rows

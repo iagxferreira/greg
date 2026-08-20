@@ -70,11 +70,7 @@ def format_country_candidates(results: list[dict]) -> str:
     """Format search results as candidates for the prompt."""
     lines = []
     for i, r in enumerate(results, 1):
-        names = (
-            r.get("content", "").split("All Names: ")[-1]
-            if r.get("content")
-            else r["name"]
-        )
+        names = r.get("content", "").split("All Names: ")[-1] if r.get("content") else r["name"]
         lines.append(
             f"{i}. {r['name']} ({r['iso2']}) - "
             f"Official: {r['official_name']}, "
