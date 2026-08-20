@@ -1,9 +1,14 @@
-# Geo-Resolution Engine
+# GREG — Geo Resolution Engine Gazetteer
 
 A RAG-based system for resolving ambiguous, partial, or misspelled location names to structured
 geographic data. **Country resolution is fully implemented today; city/state resolution is a
 backlog item** — see [ROADMAP.md](ROADMAP.md) for what's built vs planned, and
 [CONVENTIONS.md](CONVENTIONS.md) for the tradeoffs behind how it's built.
+
+**Why "GREG"?** A [gazetteer](https://en.wikipedia.org/wiki/Gazetteer) is the actual term for a
+geographic name index/reference — which is exactly what this project builds and resolves against.
+"Geo Resolution Engine Gazetteer" backronyms cleanly to GREG: technically accurate, but easier to
+say out loud than "geo-resolution-rag."
 
 ## Features
 
