@@ -48,3 +48,12 @@ to learn from until Phase 3 has been running and accumulating data.
       `mistral:latest`/`nomic-embed-text`) to `docker-compose.yml` alongside the existing `postgres`
       service, and auto-run `migrations/*.sql` on first Postgres start, so `docker compose up -d` is
       enough to get both dependencies running without a native Ollama install.
+
+## Phase 6 — HTTP API
+
+- [x] 9. `feat/http-api` — FastAPI app (`src/api.py`) exposing `GET /v1/countries/resolve?q=...`
+      over `resolve_country`, plus `GET /health`. Versioned under `/v1/countries/...` so a future
+      `/v1/states/resolve` and `/v1/cities/resolve` (Phase 1 backlog) slot in the same way.
+- [ ] 10. `feat/api-docker-service` — add an `api` service (new `Dockerfile`) to
+      `docker-compose.yml` so `docker compose up -d` also serves the HTTP API, not just its
+      Postgres/Ollama dependencies.

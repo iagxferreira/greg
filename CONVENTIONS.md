@@ -56,3 +56,13 @@ Decisions worth remembering, in the order they were made:
   (`entrypoint: ["/bin/sh", "-c", "cmd1 && cmd2"]`) round-trips through `docker compose config`
   intact. Always run `docker compose config` after editing multi-command entrypoints — the bug is
   silent otherwise (the container still starts, it just doesn't do what you wrote).
+- **`CountryResult` used directly as FastAPI's `response_model`, no separate Pydantic model** —
+  FastAPI serializes stdlib dataclasses natively, so `src/api.py` reuses `src/models.py`'s
+  `CountryResult` as-is rather than hand-maintaining a parallel Pydantic schema that could drift
+  from it. Revisit only if the API response shape ever needs to diverge from the internal one
+  (e.g. hiding an internal-only field).
+- **`GET /v1/countries/resolve` despite writing to `resolution_feedback`** — the write is an
+  internal logging side-effect the caller doesn't control or see, not a resource mutation from the
+  API's point of view; `resolve_country` (called by both the CLI and this endpoint) always logs
+  regardless of transport. Kept as `GET` since the endpoint semantically is a lookup and that's
+  what a client of this API expects to call it as.
