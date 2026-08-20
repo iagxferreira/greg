@@ -18,8 +18,9 @@ backlog item** — see [ROADMAP.md](ROADMAP.md) for what's built vs planned, and
 
 ## Prerequisites
 
-The app itself runs locally (`uv run ...`); it needs Ollama and PostgreSQL/pgvector reachable.
-Pick one:
+The CLI (`src/main.py`) always runs locally via `uv run`; it needs Ollama and PostgreSQL/pgvector
+reachable. The HTTP API (`src/api.py`) can either run locally the same way, or you can let Docker
+serve it too. Pick one:
 
 ### Option A: Docker (recommended)
 
@@ -28,13 +29,18 @@ docker compose up -d
 ```
 
 This starts `postgres` (pgvector, with `migrations/*.sql` auto-applied on first init — see the
-Database Setup note below) and `ollama`, then a one-shot `ollama-init` job pulls `mistral:latest`
-and `nomic-embed-text` into a persisted volume. First run takes a few minutes for the model pulls;
-`docker compose ps` shows when `ollama-init` has exited (status `0`). Re-running `docker compose up`
-later is cheap — `ollama pull` no-ops once a model is cached.
+Database Setup note below), `ollama`, a one-shot `ollama-init` job that pulls `mistral:latest` and
+`nomic-embed-text` into a persisted volume, and `api` — the HTTP API from a `Dockerfile` build,
+which waits for Postgres to be healthy and `ollama-init` to finish before it starts, so it's ready
+to actually resolve queries as soon as it comes up rather than 500ing on a missing model. First run
+takes a few minutes for the model pulls; `docker compose ps` shows when `ollama-init` has exited
+(status `0`) and when `api` is `healthy`. Re-running `docker compose up` later is cheap — `ollama
+pull` no-ops once a model is cached, and `--build` only rebuilds `api` if `src/`, `pyproject.toml`,
+or `uv.lock` changed.
 
-Uses the public ports `11434` (Ollama) and `5432` (Postgres, override with `POSTGRES_PORT`), so the
-defaults in `.env.example` work unchanged.
+Uses the public ports `11434` (Ollama), `5432` (Postgres, override with `POSTGRES_PORT`), and `8000`
+(API), so the defaults in `.env.example` work unchanged. The CLI still needs `uv sync` run locally
+(see Quick Start) even if you only use Docker for its dependencies — it isn't containerized.
 
 ### Option B: Native install
 
@@ -125,6 +131,8 @@ uv run python -m src.loaders.cities
 uv run python -m src.main "<country query>"
 
 # HTTP API, at http://127.0.0.1:8000 (interactive docs at /docs)
+# Already running if you used `docker compose up -d` (Option A above) — this
+# is only needed for local development or if you used Option B.
 uv run uvicorn src.api:app --reload
 ```
 
