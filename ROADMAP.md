@@ -44,7 +44,7 @@ to learn from until Phase 3 has been running and accumulating data.
 - [x] 7. `docs/readme-accuracy` — rewrite README's Usage/Example Resolutions/Architecture sections,
       which still describe the aspirational city-resolution + FAISS design, to match the real
       country-only CLI with the Nominatim fallback and feedback logging.
-- [ ] 8. `feat/docker-dev-stack` — add an `ollama` service (+ a one-shot init service that pulls
+- [x] 8. `feat/docker-dev-stack` — add an `ollama` service (+ a one-shot init service that pulls
       `mistral:latest`/`nomic-embed-text`) to `docker-compose.yml` alongside the existing `postgres`
       service, and auto-run `migrations/*.sql` on first Postgres start, so `docker compose up -d` is
       enough to get both dependencies running without a native Ollama install.

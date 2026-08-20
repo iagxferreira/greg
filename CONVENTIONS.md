@@ -47,3 +47,12 @@ Decisions worth remembering, in the order they were made:
   now (2026-08-20): no data yet on how often Nominatim actually fails, and provider-chaining adds
   real complexity (precedence, config, error handling) for an unvalidated need. Revisit once
   `resolution_feedback` has enough `nominatim_fallback` rows to show the real failure rate.
+- **`ollama-init`'s command must go in `entrypoint` as one list item, not a separate `command`
+  string** — `docker compose config` was used to validate `docker-compose.yml` (no Docker daemon was
+  available to actually run it) and caught that `entrypoint: ["/bin/sh", "-c"]` paired with
+  `command: "ollama pull mistral:latest && ollama pull nomic-embed-text"` got silently truncated to
+  just `ollama pull mistral:latest` — Compose's string-command normalization doesn't preserve `&&`
+  chaining. Folding the full shell command into `entrypoint` itself as a third list element
+  (`entrypoint: ["/bin/sh", "-c", "cmd1 && cmd2"]`) round-trips through `docker compose config`
+  intact. Always run `docker compose config` after editing multi-command entrypoints — the bug is
+  silent otherwise (the container still starts, it just doesn't do what you wrote).

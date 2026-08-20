@@ -35,13 +35,17 @@ uv run pytest test/test_resolver.py::test_function_name -v
 
 ## Environment Setup
 
-Requires a running Ollama server (`ollama serve`) with the `mistral:latest` and `nomic-embed-text`
-models pulled, and a PostgreSQL instance with the `pgvector` extension (see `docker-compose.yml`).
-Configuration is read from `.env` — see `.env.example` for `OLLAMA_BASE_URL` and `POSTGRES_*` vars,
-all of which have local-dev defaults in `src/config.py`.
+Requires a running Ollama server with the `mistral:latest` and `nomic-embed-text` models pulled,
+and a PostgreSQL instance with the `pgvector` extension. `docker compose up -d` starts both (see
+`docker-compose.yml`: `postgres` auto-applies `migrations/*.sql` on first init, `ollama` + the
+one-shot `ollama-init` job pull the required models) — the app itself still runs locally via
+`uv run`, only its two dependencies are containerized. Configuration is read from `.env` — see
+`.env.example` for `OLLAMA_BASE_URL`, `POSTGRES_*`, and `NOMINATIM_*` vars, all of which have
+local-dev defaults in `src/config.py` that match the compose file's defaults.
 
-Before first use, apply the migrations in `migrations/` and run the loaders in `src/loaders/` to
-populate and embed the `countries`, `states`, and `cities` tables from `context/*.csv`.
+Before first use (skip the migrations if you used `docker compose up -d`), apply the migrations in
+`migrations/` and run the loaders in `src/loaders/` to populate and embed the `countries`,
+`states`, and `cities` tables from `context/*.csv`.
 
 ## Architecture
 
