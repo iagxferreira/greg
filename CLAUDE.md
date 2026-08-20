@@ -50,7 +50,16 @@ populate and embed the `countries`, `states`, and `cities` tables from `context/
 ```
 User Input → Ollama embeddings (nomic-embed-text) → pgvector similarity search
     → Top-K candidates → Ollama LLM (mistral:latest) disambiguation → CountryResult
+                                        │
+                    matched=False or confidence < FALLBACK_CONFIDENCE_THRESHOLD
+                                        ▼
+                          Nominatim (OpenStreetMap) geocoding fallback
 ```
+
+If the RAG result is unmatched or below `FALLBACK_CONFIDENCE_THRESHOLD` (`src/config.py`), the
+resolver calls `src/fallback.py:nominatim_country_fallback` and returns that instead when it
+succeeds; on fallback failure (network error, no result) the original RAG result is returned
+unchanged. See `CONVENTIONS.md` for why Nominatim was chosen over a paid geocoding API.
 
 ### Core Modules (src/)
 
@@ -61,8 +70,11 @@ User Input → Ollama embeddings (nomic-embed-text) → pgvector similarity sear
   them yet — see the resolver gap below.
 - **prompt.py**: `COUNTRY_RESOLUTION_PROMPT` template + candidate formatting for country
   disambiguation.
-- **resolver.py**: `resolve_country()` — the RAG pipeline (search → prompt → LLM → parse JSON →
-  `CountryResult`). No `resolve_state`/`resolve_city` equivalent exists yet.
+- **resolver.py**: `resolve_country()` — RAG pipeline (search → prompt → LLM → parse JSON →
+  `CountryResult`) plus the Nominatim fallback trigger. No `resolve_state`/`resolve_city`
+  equivalent exists yet.
+- **fallback.py**: `nominatim_country_fallback()` — geocodes via the Nominatim `/search` API
+  (`featuretype=country`), returns `None` on any failure so the caller can keep the RAG result.
 - **models.py**: `CountryResult` dataclass (matched, name, iso2/iso3, capital, region, confidence,
   reason).
 - **main.py**: single-shot CLI — `python -m src.main "<query>"` resolves one country and prints

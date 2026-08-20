@@ -36,6 +36,17 @@ LLM_TEMPERATURE = 0
 # Vector store configuration
 DEFAULT_K_CANDIDATES = 10
 
+# Nominatim (OpenStreetMap) geocoding fallback, used when the RAG pipeline has no
+# match or a low-confidence one. Public instance is rate-limited to ~1 req/sec and
+# requires an identifying User-Agent — see https://operations.osmfoundation.org/policies/nominatim/
+NOMINATIM_BASE_URL = os.getenv("NOMINATIM_BASE_URL", "https://nominatim.openstreetmap.org")
+NOMINATIM_USER_AGENT = os.getenv("NOMINATIM_USER_AGENT", "geo-resolution-rag/0.1")
+NOMINATIM_TIMEOUT_SECONDS = 5
+
+# RAG matches below this confidence trigger the Nominatim fallback (matches the
+# prompt's own "weak match" ceiling in src/prompt.py — see CONVENTIONS.md).
+FALLBACK_CONFIDENCE_THRESHOLD = 0.7
+
 # Batch size for embedding operations (no rate limiting needed locally)
 EMBEDDING_BATCH_SIZE = 100
 
