@@ -1,10 +1,12 @@
 """Geo-resolution using RAG: vector search + LLM disambiguation, with a
-Nominatim fallback for low-confidence or no-match results."""
+Nominatim fallback for low-confidence or no-match results. Every resolution
+is logged via src/feedback.py as groundwork for a future reranker."""
 
 import json
 
 from src.config import FALLBACK_CONFIDENCE_THRESHOLD, llm
 from src.fallback import nominatim_country_fallback
+from src.feedback import log_resolution
 from src.models import CountryResult
 from src.prompt import COUNTRY_RESOLUTION_PROMPT, format_country_candidates
 from src.vector_store import search_countries
@@ -14,6 +16,8 @@ def resolve_country(user_input: str, k: int = 5) -> CountryResult:
     """
     Resolve a country name, using RAG first and falling back to Nominatim
     geocoding when the RAG pipeline has no match or a low-confidence one.
+    Logs the outcome (source, result, candidates considered) regardless of
+    which path wins.
 
     Args:
         user_input: User's country query (any language, misspellings ok)
@@ -22,28 +26,33 @@ def resolve_country(user_input: str, k: int = 5) -> CountryResult:
     Returns:
         CountryResult with matched country or no_match
     """
-    result = _resolve_country_rag(user_input, k=k)
+    result, candidates = _resolve_country_rag(user_input, k=k)
+    source = "rag"
 
-    if result.matched and result.confidence >= FALLBACK_CONFIDENCE_THRESHOLD:
-        return result
+    if not (result.matched and result.confidence >= FALLBACK_CONFIDENCE_THRESHOLD):
+        fallback_result = nominatim_country_fallback(user_input)
+        if fallback_result is not None:
+            result = fallback_result
+            source = "nominatim_fallback"
 
-    fallback_result = nominatim_country_fallback(user_input)
-    return fallback_result if fallback_result is not None else result
+    log_resolution(user_input, source, result, candidates)
+    return result
 
 
-def _resolve_country_rag(user_input: str, k: int) -> CountryResult:
+def _resolve_country_rag(user_input: str, k: int) -> tuple[CountryResult, list[dict]]:
     """
     Resolve a country name using the RAG pipeline alone.
 
     1. Vector search for top-K candidates
     2. LLM disambiguates and picks the best match
-    3. Returns structured CountryResult
+    3. Returns the CountryResult plus the raw candidates considered, so the
+       caller can log what the search surfaced.
     """
     # Step 1: Vector search
     candidates = search_countries(user_input, k=k)
 
     if not candidates:
-        return CountryResult.no_match("No candidates found in database")
+        return CountryResult.no_match("No candidates found in database"), candidates
 
     # Step 2: Format prompt
     candidates_text = format_country_candidates(candidates)
@@ -66,9 +75,9 @@ def _resolve_country_rag(user_input: str, k: int) -> CountryResult:
 
         # Parse JSON
         data = json.loads(content)
-        return CountryResult.from_dict(data)
+        return CountryResult.from_dict(data), candidates
 
     except json.JSONDecodeError as e:
-        return CountryResult.no_match(f"Failed to parse LLM response: {e}")
+        return CountryResult.no_match(f"Failed to parse LLM response: {e}"), candidates
     except Exception as e:
-        return CountryResult.no_match(f"LLM error: {e}")
+        return CountryResult.no_match(f"LLM error: {e}"), candidates
