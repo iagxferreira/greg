@@ -77,6 +77,7 @@ Run migrations to create the required tables:
 psql -h localhost -U postgres -d geo_resolution -f migrations/001_create_cities_table.sql
 psql -h localhost -U postgres -d geo_resolution -f migrations/002_create_countries_table.sql
 psql -h localhost -U postgres -d geo_resolution -f migrations/003_create_states_table.sql
+psql -h localhost -U postgres -d geo_resolution -f migrations/004_create_resolution_feedback_table.sql
 ```
 
 ### Data Indexing

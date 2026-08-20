@@ -28,7 +28,7 @@ backlog item, not part of the current pass.
 
 ## Phase 3 — Feedback loop groundwork
 
-- [ ] 6. `feat/feedback-logging` — new `resolution_feedback` Postgres table (migration
+- [x] 6. `feat/feedback-logging` — new `resolution_feedback` Postgres table (migration
       `004_create_resolution_feedback_table.sql`) logging each resolution's query, source (`rag` vs
       `nominatim_fallback`), matched result, confidence, and candidate set. This is the data a future
       reranker needs to train on.

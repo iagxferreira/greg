@@ -37,3 +37,13 @@ Decisions worth remembering, in the order they were made:
   our 0–1 scale and a single unverified geocoder hit shouldn't be reported as more certain than a
   weak RAG match. On fallback failure the original RAG result is kept rather than surfacing the
   failure to the caller — degrade gracefully, don't turn a weak match into no match.
+- **Feedback logging is best-effort and stores compact candidate summaries** — `log_resolution`
+  (`src/feedback.py`) catches and swallows its own DB errors (warns to stderr) so a broken feedback
+  pipeline never breaks resolution itself. Logged `candidates` keep only `id`/`name`/`iso2`/
+  `similarity` per candidate, not the full enriched `content` text — that text is reconstructible
+  from `id` via the `countries` table, and repeating it per feedback row would bloat storage for no
+  training benefit.
+- **Second fallback provider (e.g. geocode.xyz) deferred** — considered and explicitly declined for
+  now (2026-08-20): no data yet on how often Nominatim actually fails, and provider-chaining adds
+  real complexity (precedence, config, error handling) for an unvalidated need. Revisit once
+  `resolution_feedback` has enough `nominatim_fallback` rows to show the real failure rate.
