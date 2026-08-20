@@ -61,6 +61,12 @@ resolver calls `src/fallback.py:nominatim_country_fallback` and returns that ins
 succeeds; on fallback failure (network error, no result) the original RAG result is returned
 unchanged. See `CONVENTIONS.md` for why Nominatim was chosen over a paid geocoding API.
 
+Every call to `resolve_country()` — regardless of which path won — is logged via
+`src/feedback.py:log_resolution` to the `resolution_feedback` table (`migrations/004_*.sql`):
+query, source (`rag`/`nominatim_fallback`), result, and the raw candidates considered. This is
+groundwork for the Phase 4 bandit reranker, not a reranker itself — see `ROADMAP.md`. Logging is
+best-effort: a DB failure here is swallowed (warning to stderr) and never breaks resolution.
+
 ### Core Modules (src/)
 
 - **config.py**: loads `.env`, builds the shared `llm` (`ChatOllama`) and `embeddings`
@@ -75,6 +81,8 @@ unchanged. See `CONVENTIONS.md` for why Nominatim was chosen over a paid geocodi
   equivalent exists yet.
 - **fallback.py**: `nominatim_country_fallback()` — geocodes via the Nominatim `/search` API
   (`featuretype=country`), returns `None` on any failure so the caller can keep the RAG result.
+- **feedback.py**: `log_resolution()` — best-effort insert into `resolution_feedback` for every
+  resolution outcome; failures are caught and printed to stderr, never raised.
 - **models.py**: `CountryResult` dataclass (matched, name, iso2/iso3, capital, region, confidence,
   reason).
 - **main.py**: single-shot CLI — `python -m src.main "<query>"` resolves one country and prints
