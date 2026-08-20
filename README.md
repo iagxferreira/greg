@@ -18,9 +18,30 @@ backlog item** — see [ROADMAP.md](ROADMAP.md) for what's built vs planned, and
 
 ## Prerequisites
 
-### Install Ollama
+The app itself runs locally (`uv run ...`); it needs Ollama and PostgreSQL/pgvector reachable.
+Pick one:
 
-Download and install Ollama from [ollama.com](https://ollama.com/) or via command line:
+### Option A: Docker (recommended)
+
+```bash
+docker compose up -d
+```
+
+This starts `postgres` (pgvector, with `migrations/*.sql` auto-applied on first init — see the
+Database Setup note below) and `ollama`, then a one-shot `ollama-init` job pulls `mistral:latest`
+and `nomic-embed-text` into a persisted volume. First run takes a few minutes for the model pulls;
+`docker compose ps` shows when `ollama-init` has exited (status `0`). Re-running `docker compose up`
+later is cheap — `ollama pull` no-ops once a model is cached.
+
+Uses the public ports `11434` (Ollama) and `5432` (Postgres, override with `POSTGRES_PORT`), so the
+defaults in `.env.example` work unchanged.
+
+### Option B: Native install
+
+<details>
+<summary>Install Ollama, pull models, and set up PostgreSQL/pgvector by hand</summary>
+
+**Install Ollama** from [ollama.com](https://ollama.com/) or via command line:
 
 ```bash
 # Linux
@@ -30,41 +51,30 @@ curl -fsSL https://ollama.com/install.sh | sh
 brew install ollama
 ```
 
-### Pull Required Models
-
-This application requires two Ollama models:
+**Pull the required models:**
 
 ```bash
-# Pull the Mistral LLM (for disambiguation)
 ollama pull mistral:latest
-
-# Pull the Nomic embedding model (for vector search)
 ollama pull nomic-embed-text
 ```
 
-### Start Ollama Server
-
-Make sure Ollama is running before starting the application:
+**Start the Ollama server:**
 
 ```bash
 ollama serve
 ```
 
-### PostgreSQL with pgvector
-
-The application uses PostgreSQL with the pgvector extension for vector storage:
+**Install PostgreSQL with pgvector:**
 
 ```bash
-# Install pgvector extension (Ubuntu/Debian)
+# Ubuntu/Debian
 sudo apt install postgresql-16-pgvector
 
-# Or via Docker
-docker run -d --name pgvector \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=geo_resolution \
-  -p 5432:5432 \
-  pgvector/pgvector:pg16
+# Or run just the Postgres container from docker-compose.yml:
+docker compose up -d postgres
 ```
+
+</details>
 
 ## Quick Start
 
@@ -78,7 +88,8 @@ cp .env.example .env
 
 ### Database Setup
 
-Run migrations to create the required tables:
+**If you used `docker compose up -d`, the tables already exist** — Postgres auto-runs everything
+in `migrations/` on first init of an empty data volume. Otherwise, apply them by hand:
 
 ```bash
 psql -h localhost -U postgres -d geo_resolution -f migrations/001_create_cities_table.sql
@@ -86,6 +97,9 @@ psql -h localhost -U postgres -d geo_resolution -f migrations/002_create_countri
 psql -h localhost -U postgres -d geo_resolution -f migrations/003_create_states_table.sql
 psql -h localhost -U postgres -d geo_resolution -f migrations/004_create_resolution_feedback_table.sql
 ```
+
+(This also applies if you're reusing an existing `postgres_data` volume from before this table was
+added — auto-init only runs against an empty volume, so run the migration manually in that case.)
 
 ### Data Indexing
 
