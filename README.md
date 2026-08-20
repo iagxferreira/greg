@@ -1,13 +1,20 @@
 # Geo-Resolution Engine
 
-A RAG-based system for resolving ambiguous, partial, or misspelled city names to precise geographic coordinates.
+A RAG-based system for resolving ambiguous, partial, or misspelled location names to structured
+geographic data. **Country resolution is fully implemented today; city/state resolution is a
+backlog item** — see [ROADMAP.md](ROADMAP.md) for what's built vs planned, and
+[CONVENTIONS.md](CONVENTIONS.md) for the tradeoffs behind how it's built.
 
 ## Features
 
-- **Fuzzy matching**: Handles typos and spelling variations ("Pariss" → Paris, France)
-- **Disambiguation**: Resolves ambiguous names using global significance ("Paris" → France, not Texas)
-- **Context-aware**: Respects explicit hints ("Paris, TX" → Paris, Texas, USA)
-- **Structured output**: Returns city, state, country, coordinates, and confidence level
+- **Fuzzy matching**: Handles typos and spelling variations ("Jermany" → Germany)
+- **Multilingual**: Recognizes translations and aliases ("alemania" → Germany, "japon" → Japan)
+- **Disambiguation**: An LLM picks the best match from pgvector-retrieved candidates, not a naive
+  nearest-neighbor lookup
+- **Resilient**: Falls back to Nominatim (OpenStreetMap) geocoding when the RAG pipeline has no
+  confident match, instead of failing outright
+- **Structured output**: Returns name, ISO codes, capital, region/subregion, confidence, and the
+  reasoning behind the match
 
 ## Prerequisites
 
@@ -117,33 +124,42 @@ POSTGRES_PORT=5432
 POSTGRES_DB=geo_resolution
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
+
+# Nominatim geocoding fallback (used when the RAG pipeline has no confident match)
+NOMINATIM_BASE_URL=https://nominatim.openstreetmap.org
+NOMINATIM_USER_AGENT=geo-resolution-rag/0.1
 ```
 
 ## Usage
 
+`src/main.py` is a single-shot CLI: pass a country query as an argument, get one resolution back.
+
+```bash
+uv run python -m src.main "alemania"
 ```
-Geo-Resolution Engine
-==================================================
-Enter a city name (partial, misspelled, or ambiguous)
-Type 'quit' to exit
 
-Location> NYC
-
-  Resolved: New York City, New York, United States
-  Coordinates: 40.7128, -74.0060
-  Confidence: high
-  Reasoning: NYC is the common abbreviation for New York City
+```
+Resolving: 'alemania'
+--------------------------------------------------
+Time: 1.34s
+--------------------------------------------------
+Match: Germany (DE)
+Official: Federal Republic of Germany
+Capital: Berlin
+Region: Europe, Western Europe
+Confidence: 95%
+Reason: Alemania is the Spanish translation for Germany
 ```
 
 ## Example Resolutions
 
 | Input | Output | Reasoning |
 |-------|--------|-----------|
-| `Paris` | Paris, France | Most globally significant |
-| `Paris, TX` | Paris, Texas, USA | Explicit state context |
-| `Pariss` | Paris, France | Typo correction |
-| `NYC` | New York City, NY, USA | Common abbreviation |
-| `springfield il` | Springfield, IL, USA | State context provided |
+| `alemania` | Germany | Spanish translation, resolved via RAG |
+| `japon` | Japan | French translation, resolved via RAG |
+| `Jermany` | Germany | Typo correction, resolved via RAG |
+| `brasil` | Brazil | Portuguese spelling, resolved via RAG |
+| a query the RAG pipeline can't confidently place | best-effort match | Nominatim fallback |
 
 ## Architecture
 
@@ -157,7 +173,7 @@ User Input
          ↓
 ┌─────────────────┐
 │  PostgreSQL     │  pgvector similarity search
-│  pgvector       │  (150K+ cities indexed)
+│  pgvector       │  (250 countries indexed)
 └────────┬────────┘
          ↓ top-k candidates
 ┌─────────────────┐
@@ -165,16 +181,28 @@ User Input
 │  Mistral LLM    │  (mistral:latest model)
 └────────┬────────┘
          ↓
-┌─────────────────┐
-│  GeoResult      │  {city, state, country, lat, lon, confidence}
-└─────────────────┘
+   matched=False or low confidence?
+         ↓ yes                    ↓ no
+┌─────────────────┐               │
+│  Nominatim      │               │
+│  fallback       │               │
+└────────┬────────┘               │
+         ↓                        ↓
+┌───────────────────────────────────────┐
+│  CountryResult                        │  {name, iso2/iso3, capital,
+│  (also logged to resolution_feedback) │   region, confidence, reason}
+└───────────────────────────────────────┘
 ```
+
+See [CLAUDE.md](CLAUDE.md) for the module-by-module breakdown (`src/resolver.py`,
+`src/fallback.py`, `src/feedback.py`, etc.).
 
 ## Data Sources
 
-- **cities.csv**: 150,000+ cities with coordinates
-- **states.csv**: 5,000+ states/provinces
-- **countries.csv**: 250 countries with multilingual names
+- **countries.csv**: 250 countries with multilingual names — the only one actively resolved today.
+- **cities.csv**: 150,000+ cities with coordinates — loaded and embedded, but not yet resolvable
+  end-to-end (see [ROADMAP.md](ROADMAP.md)).
+- **states.csv**: 5,000+ states/provinces — same status as cities.
 
 ## Requirements
 
