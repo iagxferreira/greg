@@ -66,3 +66,10 @@ Decisions worth remembering, in the order they were made:
   API's point of view; `resolve_country` (called by both the CLI and this endpoint) always logs
   regardless of transport. Kept as `GET` since the endpoint semantically is a lookup and that's
   what a client of this API expects to call it as.
+- **`api` depends on `ollama-init` completing, not just `ollama` being healthy** —
+  `service_completed_successfully` was used instead of `service_healthy` on `ollama-init` so the
+  API container doesn't start accepting traffic until both models are actually pulled. `ollama`
+  being merely up but modelless would otherwise let `api` pass its own healthcheck (which only
+  checks `/health`, not that a real resolve works) while every real request 500s. Same
+  `docker compose config`-only validation caveat as the `ollama-init` entry above applies here too
+  — verify with a real `docker compose up -d --build` before trusting this in production.

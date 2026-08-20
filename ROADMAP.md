@@ -54,6 +54,6 @@ to learn from until Phase 3 has been running and accumulating data.
 - [x] 9. `feat/http-api` — FastAPI app (`src/api.py`) exposing `GET /v1/countries/resolve?q=...`
       over `resolve_country`, plus `GET /health`. Versioned under `/v1/countries/...` so a future
       `/v1/states/resolve` and `/v1/cities/resolve` (Phase 1 backlog) slot in the same way.
-- [ ] 10. `feat/api-docker-service` — add an `api` service (new `Dockerfile`) to
+- [x] 10. `feat/api-docker-service` — add an `api` service (new `Dockerfile`) to
       `docker-compose.yml` so `docker compose up -d` also serves the HTTP API, not just its
       Postgres/Ollama dependencies.
